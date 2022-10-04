@@ -35,7 +35,13 @@ class Board(object):
         if self.width < self.n_in_row or self.height < self.n_in_row:
             raise Exception('board width and height can not be '
                             'less than {}'.format(self.n_in_row))
+        self.start_player = self.players[start_player]
         self.current_player = self.players[start_player]  # start player
+        self.last_player = (
+            self.players[0] if self.current_player == self.players[1]
+            else self.players[1]
+        )
+
         # keep available moves in a list
         self.states = {}
         half = int(self.width / 2)
@@ -45,6 +51,7 @@ class Board(object):
         self.states[self.location_to_move((half - 1, half))] = self.players[0]
         self.availables = self.get_logic_action(self.current_player)
         self.last_move = -1
+        self.current_action_items = {};
 
     def move_to_location(self, move):
         """
@@ -70,10 +77,10 @@ class Board(object):
 
     def current_state(self):
         """return the board state from the perspective of the current player.
-        state shape: 4*width*height
+        state shape: 6*width*height
         """
 
-        square_state = np.zeros((4, self.width, self.height))
+        square_state = np.zeros((6, self.width, self.height))
         if self.states:
             moves, players = np.array(list(zip(*self.states.items())))
             move_curr = moves[players == self.current_player]
@@ -83,18 +90,28 @@ class Board(object):
             square_state[1][move_oppo // self.width,
                             move_oppo % self.height] = 1.0
             # indicate the last move location
-            square_state[2][self.last_move // self.width,
-                            self.last_move % self.height] = 1.0
-        if len(self.states) % 2 == 0:
-            square_state[3][:, :] = 1.0  # indicate the colour to play
+            if self.last_move != 64:
+                square_state[2][self.last_move // self.width,
+                                self.last_move % self.height] = 1.0
+            if self.start_player == self.current_player:
+                square_state[3][:, :] = 1.0  # indicate the colour to play
+            square_state[4][:, :] = self.current_player - 1
+            if len(self.current_action_items) != 0:
+                reverse_moves, reverse_players = np.array(list(zip(*self.current_action_items.items())))
+                reverse_move_curr = reverse_moves[reverse_players == self.current_player]
+                square_state[5][reverse_move_curr // self.width,
+                                reverse_move_curr % self.height] = 1.0
+
         return square_state[:, ::-1, :]
 
     def do_move(self, move):
+        self.current_action_items = {}
         if move == 64:
             self.current_player = (
                 self.players[0] if self.current_player == self.players[1]
                 else self.players[1]
             )
+            self.last_move = 64
             return
         self.states[move] = self.current_player
         # update states
@@ -118,6 +135,7 @@ class Board(object):
             if flag:
                 for m in update_list:
                     self.states[m] = update_color
+                    self.current_action_items[m] = update_color
         # update availablies
         # self.availables.remove(move)
         self.current_player = (
