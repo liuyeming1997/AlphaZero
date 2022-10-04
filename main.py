@@ -20,10 +20,10 @@ import sys
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
 # from policy_value_net_keras import PolicyValueNet # Keras
 
-# def print(str):
-#      f = open("1.txt", "a+")
-#      f.write(str + "\n")
-#      f.close()
+def print(str):
+      f = open("1.txt", "a+")
+      f.write(str + "\n")
+      f.close()
 
 
 class TrainPipeline():
